@@ -19,8 +19,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ShowService {
 
-    private final ShowRepository showRepository;
-    private final SeatRepository seatRepository;
+    private final ShowRepository    showRepository;
+    private final SeatRepository    seatRepository;
+    private final ShowRefreshService showRefreshService;  // ★ on-demand generator
 
     /**
      * Add a new show and auto-generate seats
@@ -71,16 +72,25 @@ public class ShowService {
     }
 
     /**
-     * Get all shows for a movie
+     * Get all shows for a movie.
+     * ★ Auto-generates today + tomorrow shows if they don't exist.
+     *   Fixes: blank page after server restart / 1-month gap.
      */
     public List<Show> getShowsByMovie(String movieId) {
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata"));
+        // Ensure today AND tomorrow always have shows ready
+        showRefreshService.ensureShowsExist(today);
+        showRefreshService.ensureShowsExist(today.plusDays(1));
         return showRepository.findByMovieId(movieId);
     }
 
     /**
-     * Get all shows for a movie on a specific date
+     * Get all shows for a movie on a specific date.
+     * ★ Auto-generates shows for that date on demand if missing.
+     *   Fixes: user picking any future/past date → no blank results.
      */
     public List<Show> getShowsByMovieAndDate(String movieId, LocalDate date) {
+        showRefreshService.ensureShowsExist(date);  // ★ generate if not already there
         return showRepository.findByMovieIdAndShowDate(movieId, date);
     }
 

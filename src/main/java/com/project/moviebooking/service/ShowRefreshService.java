@@ -93,6 +93,32 @@ public class ShowRefreshService {
             showRepository.count(), seatRepository.count());
     }
 
+    /**
+     * ★ ON-DEMAND overload — ensures shows exist for ANY specific date.
+     *
+     * Called by ShowService before returning shows to the frontend.
+     * This means: even after 1 month gap, shows are auto-generated
+     * the moment a user visits the website — no blank page ever.
+     *
+     * Idempotent — safe to call on every request (checks DB first).
+     *
+     * @param date the date to ensure shows for (e.g. today in IST)
+     */
+    public void ensureShowsExist(LocalDate date) {
+        List<Movie>   movies   = movieRepository.findAll();
+        List<Theatre> theatres = theatreRepository.findAll();
+
+        if (movies.isEmpty() || theatres.isEmpty()) {
+            System.out.println("⚠️  [SHOW-REFRESH] No movies or theatres — skipping on-demand refresh for " + date);
+            return;
+        }
+
+        int generated = refreshForDate(date, movies, theatres);
+        if (generated > 0) {
+            System.out.println("✅ [SHOW-REFRESH] On-demand: generated " + generated + " shows for " + date);
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  SCHEDULER — Midnight IST trigger for next-day shows
     //  cron = "0 0 0 * * ?" → fires at 00:00:00 IST every day

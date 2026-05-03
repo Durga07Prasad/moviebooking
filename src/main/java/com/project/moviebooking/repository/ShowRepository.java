@@ -34,4 +34,16 @@ public interface ShowRepository extends MongoRepository<Show, String> {
 
     /** Active-only show listing — used by ShowService.getAllShows() */
     List<Show> findByActiveTrue();
+
+    /**
+     * ★ Used by ShowRefreshService.ensureShowsExist(date) to check
+     * if a specific show slot already exists before generating it.
+     * Prevents duplicate shows on repeated calls (idempotency).
+     */
+    boolean existsByMovieIdAndTheatreIdAndShowDateAndShowTime(
+        String movieId,
+        String theatreId,
+        LocalDate showDate,
+        java.time.LocalTime showTime
+    );
 }
